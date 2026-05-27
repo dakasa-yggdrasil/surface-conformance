@@ -689,23 +689,60 @@ func isIdentChar(b byte) bool {
 
 // ---------- shared helpers ----------
 
+// looksLikeImportLine returns true when the line *appears* to be part of an
+// import declaration. To keep false positives down (a Go string literal in a
+// constant slice is NOT an import), we require either an explicit `import`
+// keyword on the line or a line of the form:
+//
+//	\t"github.com/..." [single-token, may have aliasing prefix]
+//	\t_ "github.com/..."
+//	\timportAlias "github.com/..."
+//
+// Anything followed by a `,` or `)` or other non-whitespace tail (typical of
+// a slice entry) is rejected.
 func looksLikeImportLine(line string) bool {
 	trimmed := strings.TrimSpace(line)
-	if strings.HasPrefix(trimmed, "import") {
+	if strings.HasPrefix(trimmed, "//") {
+		return false
+	}
+	if strings.HasPrefix(trimmed, "import ") || strings.HasPrefix(trimmed, "import\t") || trimmed == "import (" {
 		return true
 	}
-	if strings.HasPrefix(trimmed, `"`) && strings.HasSuffix(trimmed, `"`) {
+	// We want lines that look like:
+	//   "github.com/foo/bar"
+	//   _ "github.com/foo/bar"
+	//   alias "github.com/foo/bar"
+	// and reject:
+	//   "github.com/foo/bar",   (trailing comma → slice entry)
+	//   value: "github.com/foo/bar"
+	//
+	// Strategy: the line must END at the closing quote of the import path,
+	// modulo optional trailing whitespace / comment.
+	cleaned := trimmed
+	if idx := strings.Index(cleaned, "//"); idx >= 0 {
+		cleaned = strings.TrimSpace(cleaned[:idx])
+	}
+	if !strings.HasSuffix(cleaned, `"`) {
+		return false
+	}
+	// Now the line ends with `"`. Walk back to find the matching opening `"`.
+	// Everything before that opening must be import-shaped: empty, `_`, or a
+	// single identifier alias.
+	openIdx := strings.Index(cleaned, `"`)
+	if openIdx < 0 {
+		return false
+	}
+	prefix := strings.TrimSpace(cleaned[:openIdx])
+	if prefix == "" || prefix == "_" {
 		return true
 	}
-	// Inside an `import (` block, lines often look like `\t"github.com/..."`.
-	if strings.HasPrefix(trimmed, `_ "`) {
-		return true
+	// Allow `alias` (single identifier).
+	for i := 0; i < len(prefix); i++ {
+		if !isIdentChar(prefix[i]) {
+			return false
+		}
 	}
-	if strings.Contains(trimmed, `"`) && strings.Contains(trimmed, "/") &&
-		!strings.HasPrefix(trimmed, "//") {
-		return true
-	}
-	return false
+	return true
 }
 
 func filepathBase(p string) string {

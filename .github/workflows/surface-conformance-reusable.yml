@@ -50,16 +50,18 @@ jobs:
         with:
           repository: dakasa-yggdrasil/surface-conformance
           ref: ${{ inputs.linter-ref }}
-          path: .surface-conformance
+          # Clone outside the consuming repo's working tree so the linter
+          # never accidentally scans its own source.
+          path: ../surface-conformance-tool
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: .surface-conformance/go.mod
+          go-version-file: ../surface-conformance-tool/go.mod
 
       - name: Build linter
         run: |
-          cd .surface-conformance
+          cd ../surface-conformance-tool
           go build -o "$RUNNER_TEMP/surface-conformance-lint" ./cmd/surface-conformance-lint
 
       - name: Run linter
