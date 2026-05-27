@@ -50,18 +50,20 @@ jobs:
         with:
           repository: dakasa-yggdrasil/surface-conformance
           ref: ${{ inputs.linter-ref }}
-          # Clone outside the consuming repo's working tree so the linter
-          # never accidentally scans its own source.
-          path: ../surface-conformance-tool
+          # actions/checkout refuses paths outside $GITHUB_WORKSPACE. We clone
+          # to a `.surface-conformance` sibling INSIDE the consuming repo's
+          # checkout, then explicitly add it to the linter's allow-paths so
+          # the walker skips it.
+          path: .surface-conformance
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: ../surface-conformance-tool/go.mod
+          go-version-file: .surface-conformance/go.mod
 
       - name: Build linter
         run: |
-          cd ../surface-conformance-tool
+          cd .surface-conformance
           go build -o "$RUNNER_TEMP/surface-conformance-lint" ./cmd/surface-conformance-lint
 
       - name: Run linter
@@ -70,7 +72,10 @@ jobs:
           ALLOW_PATHS: ${{ inputs.allow-paths }}
           SKIP_LIST: ${{ inputs.skip }}
         run: |
-          flags=()
-          if [ -n "$ALLOW_PATHS" ]; then flags+=("-allow=$ALLOW_PATHS"); fi
+          # Always exclude the cloned linter source from the scan; tack on
+          # any caller-supplied allows.
+          allow=".surface-conformance/**"
+          if [ -n "$ALLOW_PATHS" ]; then allow="${allow},${ALLOW_PATHS}"; fi
+          flags=("-allow=$allow")
           if [ -n "$SKIP_LIST" ]; then flags+=("-skip=$SKIP_LIST"); fi
           "$RUNNER_TEMP/surface-conformance-lint" "${flags[@]}" "$SURFACE_PATH"

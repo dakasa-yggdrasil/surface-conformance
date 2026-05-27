@@ -87,6 +87,9 @@ func (w *repoWalker) skipDir(rel string) bool {
 		"node_modules": {}, "vendor": {}, "dist": {}, "build": {},
 		".git": {}, ".idea": {}, ".vscode": {}, ".turbo": {}, ".next": {},
 		"coverage": {}, "out": {}, "tmp": {}, "testdata": {},
+		// The reusable workflow clones surface-conformance into this dir;
+		// belt-and-suspenders so the linter never scans its own source.
+		".surface-conformance": {}, "surface-conformance-tool": {},
 	}
 	if _, hit := skipNames[name]; hit {
 		return true
