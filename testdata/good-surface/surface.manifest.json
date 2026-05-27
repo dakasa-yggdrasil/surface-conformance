@@ -1,0 +1,14 @@
+{
+  "apiVersion": "yggdrasil.io/v1alpha1",
+  "kind": "integration_surface",
+  "metadata": {
+    "name": "surface-good-fixture",
+    "namespace": "global"
+  },
+  "spec": {
+    "runtime": {
+      "kind": "spa",
+      "image": "ghcr.io/dakasa-yggdrasil/surface-good-fixture"
+    }
+  }
+}

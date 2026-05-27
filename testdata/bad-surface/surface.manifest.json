@@ -1,0 +1,14 @@
+{
+  "apiVersion": "yggdrasil.io/v1alpha1",
+  "kind": "integration_surface",
+  "metadata": {
+    "name": "surface-bad-fixture",
+    "namespace": "global"
+  },
+  "spec": {
+    "runtime": {
+      "kind": "spa",
+      "image": "153828470928.dkr.ecr.sa-east-1.amazonaws.com/surface-bad-fixture"
+    }
+  }
+}

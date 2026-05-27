@@ -1,0 +1,11 @@
+{
+  "name": "surface-bad-fixture",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@auth0/auth0-react": "^2.0.0",
+    "prisma": "^5.0.0",
+    "react": "^19.0.0"
+  }
+}

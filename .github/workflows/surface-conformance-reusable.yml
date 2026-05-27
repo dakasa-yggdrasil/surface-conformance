@@ -1,0 +1,74 @@
+name: Reusable Surface Conformance Lint
+
+# Called from each surface repo's CI to enforce SURFACE_CONTRACT.md section 3
+# invariants without duplicating the linter installation logic.
+#
+# Usage from a surface repo (e.g. surface-template/.github/workflows/surface-conformance.yml):
+#
+#   jobs:
+#     conformance:
+#       uses: dakasa-yggdrasil/surface-conformance/.github/workflows/surface-conformance-reusable.yml@main
+#       with:
+#         surface-path: "."
+
+on:
+  workflow_call:
+    inputs:
+      surface-path:
+        description: "Path to the surface root inside the consuming repo (default '.')."
+        required: false
+        type: string
+        default: "."
+      linter-ref:
+        description: "git ref of dakasa-yggdrasil/surface-conformance to install."
+        required: false
+        type: string
+        default: "main"
+      allow-paths:
+        description: "Comma-separated glob paths to exempt from the lint."
+        required: false
+        type: string
+        default: ""
+      skip:
+        description: "Comma-separated invariant ids to skip (rare; document the why)."
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout consuming repo
+        uses: actions/checkout@v4
+
+      - name: Checkout surface-conformance
+        uses: actions/checkout@v4
+        with:
+          repository: dakasa-yggdrasil/surface-conformance
+          ref: ${{ inputs.linter-ref }}
+          path: .surface-conformance
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: .surface-conformance/go.mod
+
+      - name: Build linter
+        run: |
+          cd .surface-conformance
+          go build -o "$RUNNER_TEMP/surface-conformance-lint" ./cmd/surface-conformance-lint
+
+      - name: Run linter
+        env:
+          SURFACE_PATH: ${{ inputs.surface-path }}
+          ALLOW_PATHS: ${{ inputs.allow-paths }}
+          SKIP_LIST: ${{ inputs.skip }}
+        run: |
+          flags=()
+          if [ -n "$ALLOW_PATHS" ]; then flags+=("-allow=$ALLOW_PATHS"); fi
+          if [ -n "$SKIP_LIST" ]; then flags+=("-skip=$SKIP_LIST"); fi
+          "$RUNNER_TEMP/surface-conformance-lint" "${flags[@]}" "$SURFACE_PATH"

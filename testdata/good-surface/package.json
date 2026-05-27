@@ -1,0 +1,12 @@
+{
+  "name": "surface-good-fixture",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@dakasa-yggdrasil/surface-toolkit": "^0.2.0",
+    "@tanstack/react-query": "^5.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

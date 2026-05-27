@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./... -count=1
+
+      - name: Build CLI
+        run: go build ./cmd/surface-conformance-lint
+
+      - name: Smoke run on good fixture
+        run: |
+          out=$(./surface-conformance-lint ./testdata/good-surface)
+          if [ -n "$out" ]; then
+            echo "good-surface emitted findings:"
+            echo "$out"
+            exit 1
+          fi
+
+      - name: Smoke run on bad fixture
+        run: |
+          set +e
+          ./surface-conformance-lint ./testdata/bad-surface
+          rc=$?
+          set -e
+          if [ "$rc" != "1" ]; then
+            echo "bad-surface expected exit 1, got $rc"
+            exit 1
+          fi
